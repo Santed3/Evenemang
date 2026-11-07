@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kvitt – hitta något att göra nära dig</title>
+<!--#wps-include fragment="site-styles" -->
+</head>
+<body>
+<!--#wps-include fragment="site-header" -->
+<main>
+<div class="wrap">
+<p class="muted" style="margin:0 0 12px">Stockholm · <span id="count" aria-live="polite">Hämtar evenemang</span></p>
+<h1 class="hero" style="margin:0 0 16px;font-size:56px;line-height:1.02;max-width:760px">Hitta något att göra nära dig.</h1>
+<p class="muted" style="margin:0 0 28px;font-size:18px;max-width:620px">Fester, träffar, konserter och speciella tillfällen på ett ställe. Spara det du gillar och anmäl intresse med ett klick.</p>
+
+<div class="field" style="max-width:560px;margin-bottom:20px">
+<label for="q">Sök evenemang</label>
+<input id="q" class="input" type="search" placeholder="Fest, träff, plats eller stadsdel" autocomplete="off" style="border-radius:26px;padding:12px 22px">
+</div>
+
+<div id="timeChips" class="chips" role="group" aria-label="Filtrera på tid" style="margin-bottom:12px"></div>
+<div id="catChips" class="chips" role="group" aria-label="Filtrera på typ" style="margin-bottom:32px"></div>
+
+<div id="status"></div>
+<div id="list" class="grid"></div>
+</div>
+</main>
+<!--#wps-include fragment="site-footer" -->
+<script src="/kvitt.js"></script>
+<script>
+(function () {
+  var K = window.Kvitt;
+  var state = { events: [], cat: 'Alla', time: 'Alla datum', q: '' };
+  var cats = ['Alla', 'Fest', 'Träff', 'Speciellt', 'Konsert', 'Klubb', 'Stand-up', 'Mat', 'Marknad', 'Student', 'Sparade'];
+  var times = ['Alla datum', 'Idag', 'Denna vecka', 'Senare'];
+  var elList = document.getElementById('list');
+  var elStatus = document.getElementById('status');
+  var elCount = document.getElementById('count');
+  var elCat = document.getElementById('catChips');
+  var elTime = document.getElementById('timeChips');
+
+  function chips(el, list, key) {
+    el.innerHTML = list.map(function (c) {
+      return '<button type="button" class="chip" data-v="' + K.esc(c) + '" aria-pressed="' + (state[key] === c) + '">' + K.esc(c) + '</button>';
+    }).join('');
+  }
+  function visible() {
+    var q = state.q.trim().toLowerCase();
+    var saved = K.getSaved();
+    return state.events.filter(function (e) {
+      var i = K.info(e.starts_at);
+      if (K.isPast(i)) return false;
+      if (state.cat === 'Sparade') { if (saved.indexOf(e.slug) === -1) return false; }
+      else if (state.cat !== 'Alla' && e.category !== state.cat) return false;
+      if (state.time !== 'Alla datum' && K.bucket(i) !== state.time) return false;
+      if (q) {
+        var hay = (e.title + ' ' + e.category + ' ' + (e.venue || '') + ' ' + (e.area || '')).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+  function card(e) {
+    var i = K.info(e.starts_at);
+    var bg = K.color(e.bg, '#17171D'), ink = K.color(e.ink, '#F4F3EF'), shape = K.color(e.shape, '#C6F432');
+    var day = ('0' + i.day).slice(-2);
+    return '<a class="card" href="/event.html?s=' + encodeURIComponent(e.slug) + '">' +
+      '<span class="cover" style="background:' + bg + ';color:' + ink + '">' +
+      '<span class="shape" style="background:' + shape + '"></span>' +
+      '<span class="cat">' + K.esc(e.category) + '</span>' +
+      (e.is_example ? '<span class="ex">Exempel</span>' : '') +
+      '<span class="date"><b>' + day + '</b><i>' + K.esc(i.mon.toUpperCase()) + '</i></span></span>' +
+      '<span class="body"><span class="t">' + K.esc(e.title) + '</span>' +
+      '<span class="m">' + K.esc(K.when(i)) + ' · ' + K.esc(e.venue || '') + '</span>' +
+      '<span class="p">' + K.esc(K.priceLabel(e)) + '</span></span></a>';
+  }
+  function render() {
+    chips(elCat, cats, 'cat');
+    chips(elTime, times, 'time');
+    var list = visible();
+    elCount.textContent = list.length + (list.length === 1 ? ' evenemang' : ' evenemang') + ' att välja bland';
+    elList.innerHTML = list.map(card).join('');
+    if (!list.length && state.events.length) {
+      elStatus.innerHTML = '<div class="panel" style="text-align:center;margin-bottom:24px"><h2 style="margin:0 0 8px">Inget hittades</h2><p class="muted" style="margin:0 0 16px">Testa en annan tid eller typ.</p><button type="button" class="btn" id="reset">Visa alla</button></div>';
+      document.getElementById('reset').addEventListener('click', function () {
+        state.cat = 'Alla'; state.time = 'Alla datum'; state.q = ''; document.getElementById('q').value = ''; render();
+      });
+    } else if (!state.events.length) {
+      elStatus.innerHTML = '';
+    } else {
+      elStatus.innerHTML = '';
+    }
+  }
+  elCat.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-v]'); if (!b) return;
+    state.cat = b.getAttribute('data-v'); render();
+  });
+  elTime.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-v]'); if (!b) return;
+    state.time = b.getAttribute('data-v'); render();
+  });
+  document.getElementById('q').addEventListener('input', function (ev) {
+    state.q = ev.target.value; render();
+  });
+
+  render();
+  K.get('events?select=slug,title,category,starts_at,venue,area,price_sek,bg,ink,shape,is_example&order=starts_at.asc')
+    .then(function (rows) { state.events = rows; render(); })
+    .catch(function () {
+      elCount.textContent = 'Något gick fel';
+      elStatus.innerHTML = '<div class="msg err">Vi kunde inte hämta evenemangen just nu. Försök igen om en stund.</div>';
+    });
+})();
+</script>
+</body>
+</html>
