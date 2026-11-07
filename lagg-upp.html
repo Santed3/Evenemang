@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lägg upp ditt evenemang – Kvitt</title>
+<!--#wps-include fragment="site-styles" -->
+</head>
+<body>
+<!--#wps-include fragment="site-header" -->
+<main>
+<div class="wrap" style="max-width:680px">
+<h1 style="margin:0 0 12px;font-size:44px">Lägg upp ditt evenemang</h1>
+<p class="muted" style="margin:0 0 32px;font-size:17px">Arrangerar du en fest, träff, konsert eller något annat? Berätta om det så granskar vi det innan det visas i Kvitt.</p>
+
+<form id="f" class="panel" novalidate>
+<div class="field"><label for="organizer">Arrangör eller ditt namn</label><input id="organizer" class="input" type="text" required maxlength="120"></div>
+<div class="field"><label for="email">E-post</label><input id="email" class="input" type="email" required maxlength="200" autocomplete="email"></div>
+<div class="field"><label for="title">Namn på evenemanget</label><input id="title" class="input" type="text" required maxlength="160"></div>
+<div class="field"><label for="category">Typ</label>
+<select id="category" class="input">
+<option value="">Välj typ</option>
+<option>Fest</option><option>Träff</option><option>Speciellt</option><option>Konsert</option><option>Klubb</option><option>Stand-up</option><option>Mat</option><option>Marknad</option><option>Student</option><option>Annat</option>
+</select></div>
+<div class="field"><label for="starts">Datum och tid</label><input id="starts" class="input" type="datetime-local" required></div>
+<div class="field"><label for="venue">Plats</label><input id="venue" class="input" type="text" required maxlength="120"></div>
+<div class="field"><label for="area">Stadsdel eller ort</label><input id="area" class="input" type="text" maxlength="120"></div>
+<div class="field"><label for="price">Pris (skriv Gratis eller till exempel 150 kr)</label><input id="price" class="input" type="text" maxlength="30"></div>
+<div class="field"><label for="description">Beskrivning</label><textarea id="description" class="input" required maxlength="2000"></textarea></div>
+<div class="hp" aria-hidden="true"><label>Lämna tomt<input id="w" type="text" tabindex="-1" autocomplete="off"></label></div>
+<div class="field" style="flex-direction:row;align-items:flex-start;gap:10px">
+<input id="consent" type="checkbox" required style="width:22px;height:22px;margin-top:2px">
+<label for="consent" style="color:var(--text)">Jag har läst <a href="/villkor.html">villkoren</a> och godkänner att Kvitt sparar uppgifterna för att kunna granska mitt evenemang.</label>
+</div>
+<button id="go" class="btn" type="submit" style="width:100%">Skicka in evenemang</button>
+<div id="res" role="status" aria-live="polite"></div>
+</form>
+</div>
+</main>
+<!--#wps-include fragment="site-footer" -->
+<script src="/kvitt.js"></script>
+<script>
+(function () {
+  var K = window.Kvitt;
+  var form = document.getElementById('f');
+  function v(id) { return document.getElementById(id).value.trim(); }
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var res = document.getElementById('res');
+    var row = {
+      organizer: v('organizer'), email: v('email'), title: v('title'),
+      category: v('category') || null, starts_text: v('starts'), venue: v('venue'),
+      area: v('area') || null, price_text: v('price') || null, description: v('description')
+    };
+    var okMail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email);
+    if (row.organizer.length < 2 || !okMail || row.title.length < 3 || row.starts_text.length < 3 || row.venue.length < 2 || row.description.length < 10) {
+      res.innerHTML = '<div class="msg err">Fyll i alla obligatoriska fält. Beskrivningen ska vara minst 10 tecken.</div>';
+      return;
+    }
+    if (!document.getElementById('consent').checked) {
+      res.innerHTML = '<div class="msg err">Du behöver godkänna villkoren för att skicka in.</div>';
+      return;
+    }
+    if (document.getElementById('w').value) { res.innerHTML = '<div class="msg ok">Tack! Vi har tagit emot ditt evenemang.</div>'; return; }
+    var btn = document.getElementById('go');
+    btn.disabled = true;
+    K.insert('event_submissions', row)
+      .then(function () {
+        form.reset();
+        btn.disabled = false;
+        res.innerHTML = '<div class="msg ok">Tack! Vi har tagit emot ditt evenemang och granskar det innan det visas.</div>';
+      })
+      .catch(function () {
+        btn.disabled = false;
+        res.innerHTML = '<div class="msg err">Något gick fel. Försök igen om en stund.</div>';
+      });
+  });
+})();
+</script>
+</body>
+</html>
