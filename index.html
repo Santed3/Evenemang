@@ -10,7 +10,7 @@
 <!--#wps-include fragment="site-header" -->
 <main>
 <div class="wrap">
-<p class="muted" style="margin:0 0 12px">Stockholm · <span id="count" aria-live="polite">Hämtar evenemang</span></p>
+<p class="muted" style="margin:0 0 12px">Hela Sverige · <span id="count" aria-live="polite">Hämtar evenemang</span></p>
 <h1 class="hero" style="margin:0 0 16px;font-size:56px;line-height:1.02;max-width:760px">Hitta något att göra nära dig.</h1>
 <p class="muted" style="margin:0 0 28px;font-size:18px;max-width:620px">Fester, träffar, konserter och speciella tillfällen på ett ställe. Spara det du gillar och anmäl intresse med ett klick.</p>
 
@@ -87,7 +87,7 @@
         state.cat = 'Alla'; state.time = 'Alla datum'; state.q = ''; document.getElementById('q').value = ''; render();
       });
     } else if (!state.events.length) {
-      elStatus.innerHTML = '';
+      elStatus.innerHTML = '<div class="panel" style="text-align:center;margin:0 0 24px"><h2 style="margin:0 0 8px">Inga evenemang publicerade ännu</h2><p class="muted" style="margin:0 0 16px">Vi fyller på med evenemang. Känner du till något som borde finnas här?</p><a class="btn" href="/lagg-upp.html">Tipsa om ett evenemang</a></div>';
     } else {
       elStatus.innerHTML = '';
     }
@@ -105,7 +105,7 @@
   });
 
   render();
-  K.get('events?select=slug,title,category,starts_at,venue,area,price_sek,bg,ink,shape,is_example&order=starts_at.asc')
+  K.get('events?select=slug,title,category,starts_at,venue,area,price_sek,bg,ink,shape,is_example&is_example=eq.false&order=starts_at.asc')
     .then(function (rows) { state.events = rows; render(); })
     .catch(function () {
       elCount.textContent = 'Något gick fel';
