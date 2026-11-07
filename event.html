@@ -34,6 +34,7 @@
 </div>
 </main>
 <!--#wps-include fragment="site-footer" -->
+<script src="https://cdn.websitepublisher.ai/js/sapi-client.js"></script>
 <script src="/kvitt.js"></script>
 <script>
 (function () {
@@ -63,9 +64,8 @@
     h += '<h2 style="margin:0 0 12px;font-size:24px">Om evenemanget</h2>';
     h += '<p style="margin:0 0 32px;font-size:17px;line-height:1.6;color:#D2D1D8">' + K.esc(e.description || '') + '</p>';
     h += '<h2 style="margin:0 0 12px;font-size:24px">Plats</h2>';
-    h += '<div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:32px"><div class="map" role="img" aria-label="Kartskiss"><i style="left:0;right:0;top:46%;height:10px"></i><i style="top:0;bottom:0;left:38%;width:10px"></i><i style="left:38%;top:46%;width:22px;height:22px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--accent);border:3px solid var(--bg)"></i></div>' +
-      '<div style="flex:1 1 240px;display:flex;flex-direction:column;justify-content:center;gap:4px"><div style="font-size:18px;font-weight:600">' + K.esc(e.venue || '') + '</div><div class="muted">' + K.esc(e.area || '') + '</div>' +
-      (e.doors ? '<div class="muted">Dörrar öppnas ' + K.esc(e.doors) + '</div>' : '') + '</div></div>';
+    var mapQuery = encodeURIComponent([e.venue || '', e.area || ''].filter(Boolean).join(', '));
+    h += '<div class="panel" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px"><div><div style="font-size:18px;font-weight:600">' + K.esc(e.venue || '') + '</div><div class="muted">' + K.esc(e.area || '') + '</div>' + (e.doors ? '<div class="muted">Dörrar öppnas ' + K.esc(e.doors) + '</div>' : '') + '</div><a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=' + mapQuery + '" target="_blank" rel="noopener">Visa på karta</a></div>;
     h += '<h2 style="margin:0 0 12px;font-size:24px">Bra att veta</h2><ul class="rules">' +
       '<li><strong>Åldersgräns:</strong> ' + K.esc(e.age_limit || 'Alla åldrar') + '. Legitimation kan krävas.</li>' +
       (free ? '<li><strong>Anmälan:</strong> Gratis. Anmäl intresse så vet arrangören att du vill komma.</li>' :
@@ -108,20 +108,27 @@
       if (document.getElementById('w').value) { res.innerHTML = '<div class="msg ok">Tack! Din anmälan är mottagen.</div>'; return; }
       var btn = document.getElementById('go');
       btn.disabled = true;
-      K.insert('event_interests', { event_slug: e.slug, kind: free ? 'rsvp' : 'ticket-interest', name: name, email: mail })
-        .then(function () {
-          res.innerHTML = '<div class="msg ok">Tack ' + K.esc(name) + '! Din anmälan är mottagen.</div>';
-          document.getElementById('n').value = ''; document.getElementById('m').value = '';
-        })
-        .catch(function () {
-          btn.disabled = false;
-          res.innerHTML = '<div class="msg err">Något gick fel. Försök igen om en stund.</div>';
-        });
+      var sapi = WP.sapi(32467);
+      sapi.submitForm('event_interest', {
+        name: name,
+        email: mail,
+        event_slug: e.slug,
+        event_title: e.title,
+        kind: free ? 'rsvp' : 'ticket-interest',
+        website: ''
+      }).then(function (r) {
+        if (!r || !r.ok) throw new Error('Anmälan kunde inte sparas');
+        res.innerHTML = '<div class="msg ok">Tack ' + K.esc(name) + '! Din anmälan är mottagen.</div>';
+        document.getElementById('n').value = ''; document.getElementById('m').value = '';
+      }).catch(function () {
+        btn.disabled = false;
+        res.innerHTML = '<div class="msg err">Anmälan kunde inte skickas. Försök igen om en stund.</div>';
+      });
     });
   }
 
   if (!/^[a-z0-9-]{3,120}$/.test(slug)) { notFound('Hittade inte evenemanget'); return; }
-  K.get('events?slug=eq.' + encodeURIComponent(slug) + '&select=*&limit=1')
+  K.get('events?slug=eq.' + encodeURIComponent(slug) + '&is_example=eq.false&select=*&limit=1')
     .then(function (rows) { if (rows.length) { render(rows[0]); } else { notFound('Hittade inte evenemanget'); } })
     .catch(function () { notFound('Kunde inte hämta evenemanget'); });
 })();
