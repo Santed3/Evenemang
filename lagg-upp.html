@@ -18,7 +18,7 @@
 <div class="field"><label for="email">E-post</label><input id="email" class="input" type="email" required maxlength="200" autocomplete="email"></div>
 <div class="field"><label for="title">Namn på evenemanget</label><input id="title" class="input" type="text" required maxlength="160"></div>
 <div class="field"><label for="category">Typ</label>
-<select id="category" class="input">
+<select id="category" class="input" required>
 <option value="">Välj typ</option>
 <option>Fest</option><option>Träff</option><option>Speciellt</option><option>Konsert</option><option>Klubb</option><option>Stand-up</option><option>Mat</option><option>Marknad</option><option>Student</option><option>Annat</option>
 </select></div>
@@ -38,6 +38,7 @@
 </div>
 </main>
 <!--#wps-include fragment="site-footer" -->
+<script src="https://cdn.websitepublisher.ai/js/sapi-client.js"></script>
 <script src="/kvitt.js"></script>
 <script>
 (function () {
@@ -64,16 +65,27 @@
     if (document.getElementById('w').value) { res.innerHTML = '<div class="msg ok">Tack! Vi har tagit emot ditt evenemang.</div>'; return; }
     var btn = document.getElementById('go');
     btn.disabled = true;
-    K.insert('event_submissions', row)
-      .then(function () {
-        form.reset();
-        btn.disabled = false;
-        res.innerHTML = '<div class="msg ok">Tack! Vi har tagit emot ditt evenemang och granskar det innan det visas.</div>';
-      })
-      .catch(function () {
-        btn.disabled = false;
-        res.innerHTML = '<div class="msg err">Något gick fel. Försök igen om en stund.</div>';
-      });
+    var sapi = WP.sapi(32467);
+    sapi.submitForm('event_submission', {
+      organizer: row.organizer,
+      email: row.email,
+      title: row.title,
+      category: row.category,
+      starts_text: row.starts_text,
+      venue: row.venue,
+      area: row.area || '',
+      price_text: row.price_text || '',
+      description: row.description,
+      website: ''
+    }).then(function (r) {
+      if (!r || !r.ok) throw new Error('Inskicket kunde inte sparas');
+      form.reset();
+      btn.disabled = false;
+      res.innerHTML = '<div class="msg ok">Tack! Vi har tagit emot ditt evenemang och granskar det innan det visas.</div>';
+    }).catch(function () {
+      btn.disabled = false;
+      res.innerHTML = '<div class="msg err">Inskicket kunde inte skickas. Försök igen om en stund.</div>';
+    });
   });
 })();
 </script>
