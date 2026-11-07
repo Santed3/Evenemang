@@ -41,13 +41,6 @@
     return fetch(SB_URL + '/rest/v1/' + path, { headers: { apikey: SB_KEY, Accept: 'application/json' } })
       .then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.json(); });
   }
-  function sbInsert(table, row) {
-    return fetch(SB_URL + '/rest/v1/' + table, {
-      method: 'POST',
-      headers: { apikey: SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify(row)
-    }).then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return true; });
-  }
 
   function getSaved() {
     try { var v = JSON.parse(localStorage.getItem(SK) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
@@ -60,7 +53,7 @@
   }
 
   window.Kvitt = {
-    get: sbGet, insert: sbInsert, esc: esc, color: color, info: info, isPast: isPast,
+    get: sbGet, esc: esc, color: color, info: info, isPast: isPast,
     bucket: bucket, when: when, priceLabel: priceLabel, pricePlain: pricePlain,
     getSaved: getSaved, toggleSaved: toggleSaved
   };
